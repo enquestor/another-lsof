@@ -31,7 +31,8 @@ void print_head()
 
 void print(proc p)
 {
-	print_line(p.command, p.pid, p.user, "FD", "TYPE", "NODE", "NAME");
+	for(int i = 0; i < p.e; i++)
+		print_line(p.command, p.pid, p.user, p.fd[i], p.type[i], p.node[i], p.name[i]);
 }
 
 // checks if s is a number
@@ -49,16 +50,46 @@ int to_number(char* s)
 	return strtol(s, &p, 10);
 }
 
-// returns first match of reg in str
-char* match_regex(char* str, char* reg)
-{
+char** match_regex(char* str, char* reg, int* count) {
 	regex_t rt;
-	regmatch_t rm[1];
+	regmatch_t rm;
 	assert(regcomp(&rt, reg, REG_EXTENDED) == 0);
-	assert(regexec(&rt, str, 1, rm, 0) == 0);
-	char* match = new char[REG_LEN];
-	strncpy(match, str + rm[0].rm_so, rm[0].rm_eo - rm[0].rm_so);
-	return match;
+    // we just need the whole string match in this example    
+
+    // we store the eflags in a variable, so that we can make
+    // ^ match the first time, but not for subsequent regexecs
+    int eflags = 0;
+	int i = 0;
+    size_t offset = 0;
+    size_t length = strlen(str);
+	char* now_str = str;
+	char** matches = new char*[REGEX_ARRAY_LEN];
+
+    while (regexec(&rt, now_str, 1, &rm, eflags) == 0)
+	{
+        // do not let ^ match again.
+        eflags = REG_NOTBOL;
+		matches[i] = new char[REG_LEN];
+		strncpy(matches[i], now_str + rm.rm_so, rm.rm_eo - rm.rm_so);
+
+        // increase the starting offset
+        now_str += rm.rm_eo;
+
+        // a match can be a zero-length match, we must not fail
+        // to advance the pointer, or we'd have an infinite loop!
+        if (rm.rm_so == rm.rm_eo)
+            now_str += 1;
+		
+		i++;
+
+        // break the loop if we've consumed all characters. Note
+        // that we run once for terminating null, to let
+        // a zero-length match occur at the end of the string.
+        if (now_str >= str + length)
+            break;
+    }
+	*count = i;
+	return matches;
 }
 
 char* read_file(char* path)
@@ -83,4 +114,22 @@ char* proc_path(char* pid)
 	strcpy(path, "/proc/");
 	strcat(path, pid);
 	return path;
+}
+
+void add_entry(proc* p, const char* fd, const char* type, const char* node, const char* name)
+{
+	char* tmp;
+	tmp = new char[ENTRY_LEN];
+	strcpy(tmp, fd);
+	p->fd[p->e]   = tmp;
+	tmp = new char[ENTRY_LEN];
+	strcpy(tmp, type);
+	p->type[p->e] = tmp;
+	tmp = new char[ENTRY_LEN];
+	strcpy(tmp, node);
+	p->node[p->e] = tmp;
+	tmp = new char[ENTRY_LEN];
+	strcpy(tmp, name);
+	p->name[p->e] = tmp;
+	++p->e;
 }

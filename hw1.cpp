@@ -9,6 +9,8 @@
 #include "header/utils.h"
 #include "header/proc.h"
 
+bool IS_ROOT;
+
 // 0: status, 1: -c, 2: -t, 3: -f
 char** parse_args(int argc, char **argv)
 {
@@ -35,33 +37,55 @@ char** parse_args(int argc, char **argv)
 	return args;
 }
 
-char* get_command(char* pid)
+void set_command(proc* p)
 {
 	char* sta;
-	char* path = proc_path(pid);
+	char* path = proc_path(p->pid);
 	char* cmd  = new char[CMD_LEN];
 	char* reg  = new char[REG_LEN];
 	strcat(path, "/stat");
 	strcpy(reg, "\\(.*\\)");
 	sta = read_file(path);
-	cmd = match_regex(sta, reg);
+	int count = 0;
+	cmd = match_regex(sta, reg, &count)[0];
 	++cmd; cmd[strlen(cmd) - 1] = 0;
 	delete path;
 	delete sta;
 	delete reg;
-	return cmd;
+	p->command = cmd;
 }
 
-char* get_user(char* pid)
+void set_user(proc* p)
 {
 	struct stat sta;
-	char* path = proc_path(pid);
+	char* path = proc_path(p->pid);
 	stat(path, &sta);
 	char* user = get_username(sta.st_uid);
 	delete path;
-	return user;
+	p->user = user;
 }
 
+void set_fd(proc* p)
+{
+	char* path = proc_path(p->pid);
+	if(!IS_ROOT)
+	{
+		// === CWD ===
+		char* cwd_path = new char[ENTRY_LEN];
+		strcpy(cwd_path, path);
+		strcat(cwd_path, "/cwd (readlink: Permission denied)");
+		add_entry(p, "cwd", "unknown", "", cwd_path);
+		// === 
+		char* root_path = new char[ENTRY_LEN];
+		strcpy(root_path, path);
+		strcat(root_path, "/root (readlink: Permission denied)");
+		add_entry(p, "root", "unknown", "", root_path);
+		char* exe_path = new char[ENTRY_LEN];
+		strcpy(exe_path, path);
+		strcat(exe_path, "/exe (readlink: Permission denied)");
+		add_entry(p, "exe", "unknown", "", exe_path);
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -74,6 +98,9 @@ int main(int argc, char **argv)
 		print_usage(argv[0]);
 		return 0;
 	}
+
+	// check if user is root
+	IS_ROOT = (geteuid() == 0);
 
 	dirent* dent;
 	DIR *dir = opendir("/proc");
@@ -88,12 +115,20 @@ int main(int argc, char **argv)
 		p.pid = dent->d_name;
 
 		// === command ===
-		p.command = get_command(p.pid);
+		set_command(&p);
 
 		// === USER ===
-		p.user = get_user(p.pid);
+		set_user(&p);
+
+		// initialize arrays
+		p.fd   = new char*[ENTRY_LEN];
+		p.type = new char*[ENTRY_LEN];
+		p.node = new char*[ENTRY_LEN];
+		p.name = new char*[ENTRY_LEN];
+		p.e = 0;
 
 		// === FD ===
+		set_fd(&p);
 
 		// print
 		print(p);

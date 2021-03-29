@@ -6,7 +6,11 @@ struct proc
 	char* command; // status
 	char* pid;
 	char* user;
-	char* cwd; 
+	char** fd;
+	char** type;
+	char** node;
+	char** name;
+	int e;
 };
 
 #endif
