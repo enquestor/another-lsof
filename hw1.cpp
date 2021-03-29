@@ -45,12 +45,8 @@ void set_command(proc* p)
 	strcat(path, "/stat");
 	strcpy(reg, "\\(.*\\)");
 	sta = read_file(path);
-	int count = 0;
-	cmd = match_regex(sta, reg, &count)[0];
+	cmd = match_regex(sta, reg);
 	++cmd; cmd[strlen(cmd) - 1] = 0;
-	delete path;
-	delete sta;
-	delete reg;
 	p->command = cmd;
 }
 
@@ -60,7 +56,6 @@ void set_user(proc* p)
 	char* path = proc_path(p->pid);
 	stat(path, &sta);
 	char* user = get_username(sta.st_uid);
-	delete path;
 	p->user = user;
 }
 
@@ -124,7 +119,6 @@ void set_fd(proc* p)
 	}
 
 	// === fd ===
-	char* fd = new char[FILE_LEN];
 	DIR *dir = opendir(fd_path);
 	if(!dir)
 	{
@@ -134,21 +128,41 @@ void set_fd(proc* p)
 	else
 	{
 		dirent* dent;
+		char* fd = new char[FILE_LEN];
+		char* full_path = new char[PATH_LEN];
+		char* real_path = new char[PATH_LEN];
+		struct stat sta;
 		while((dent = readdir(dir)))
 		{
+			if(!is_number(dent->d_name)) continue;
+
+			strcpy(full_path, fd_path);
+			strcat(full_path, "/");
+			strcat(full_path, dent->d_name);
+
+			stat(full_path, &sta);
+			len = readlink(full_path, real_path, PATH_LEN); real_path[len] = 0;
+			// printf("%s\n", real_path);
+
+			strcpy(fd, "");
+			strcat(fd, dent->d_name);
+			strcat(fd, get_rwu(full_path));
 			
+			if(S_ISDIR(sta.st_mode))
+				add_entry(p, "CHINCHIN", "DIR", get_inode(full_path), real_path);
+			else if(S_ISREG(sta.st_mode))
+				add_entry(p, fd, "REG", get_inode(full_path), real_path);
+			else if(S_ISCHR(sta.st_mode))
+				add_entry(p, fd, "CHR", get_inode(full_path), real_path);
+			else if(S_ISFIFO(sta.st_mode))
+				add_entry(p, fd, "FIFO", get_inode(full_path), real_path);
+			else if(S_ISSOCK(sta.st_mode))
+				add_entry(p, fd, "SOCK", get_inode(full_path), real_path);
+			else 
+				add_entry(p, fd, "unknown", get_inode(full_path), real_path);
 		}
 		closedir(dir);
 	}
-	
-	delete cwd;
-	delete root;
-	delete exe;
-	delete fd;
-	delete cwd_path;
-	delete root_path;
-	delete exe_path;
-	delete fd_path;
 }
 
 int main(int argc, char **argv)
@@ -193,6 +207,7 @@ int main(int argc, char **argv)
 
 		// print
 		print(p);
+		// break;
 	}
     closedir(dir);
 }
