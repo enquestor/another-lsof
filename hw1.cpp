@@ -3,13 +3,12 @@
 #include <cstring>
 #include <dirent.h>
 #include <unistd.h>
+#include <error.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "header/consts.h"
 #include "header/utils.h"
 #include "header/proc.h"
-
-bool IS_ROOT;
 
 // 0: status, 1: -c, 2: -t, 3: -f
 char** parse_args(int argc, char **argv)
@@ -68,23 +67,88 @@ void set_user(proc* p)
 void set_fd(proc* p)
 {
 	char* path = proc_path(p->pid);
-	if(!IS_ROOT)
+	char* cwd_path = new char[ENTRY_LEN];
+	strcpy(cwd_path, path);
+	strcat(cwd_path, "/cwd");
+	char* root_path = new char[ENTRY_LEN];
+	strcpy(root_path, path);
+	strcat(root_path, "/root");
+	char* exe_path = new char[ENTRY_LEN];
+	strcpy(exe_path, path);
+	strcat(exe_path, "/exe");
+	char* fd_path = new char[ENTRY_LEN];
+	strcpy(fd_path, path);
+	strcat(fd_path, "/fd");
+
+	int len;
+	// === cwd ===
+	char* cwd = new char[ENTRY_LEN];
+	len = readlink(cwd_path, cwd, ENTRY_LEN);
+	if(len == -1) // readlink fail
 	{
-		// === CWD ===
-		char* cwd_path = new char[ENTRY_LEN];
-		strcpy(cwd_path, path);
-		strcat(cwd_path, "/cwd (readlink: Permission denied)");
+		strcat(cwd_path, " (readlink: Permission denied)");
 		add_entry(p, "cwd", "unknown", "", cwd_path);
-		// === 
-		char* root_path = new char[ENTRY_LEN];
-		strcpy(root_path, path);
-		strcat(root_path, "/root (readlink: Permission denied)");
-		add_entry(p, "root", "unknown", "", root_path);
-		char* exe_path = new char[ENTRY_LEN];
-		strcpy(exe_path, path);
-		strcat(exe_path, "/exe (readlink: Permission denied)");
+	}
+	else 
+	{
+		cwd[len] = 0;
+		add_entry(p, "cwd", "DIR", get_inode(cwd), cwd);
+	}
+
+	// === root ===
+	char* root = new char[ENTRY_LEN];
+	len = readlink(root_path, root, ENTRY_LEN); 
+	if(len == -1)
+	{
+		strcat(root_path, " (readlink: Permission denied)");
+		add_entry(p, "root", "unknown", "", root_path);	
+	}
+	else
+	{
+		root[len] = 0;
+		add_entry(p, "root", "DIR", get_inode(root), root);
+	}
+
+	// === exe ===
+	char* exe = new char[ENTRY_LEN];
+	len = readlink(exe_path, exe, ENTRY_LEN);
+	if(len == -1)
+	{
+		strcat(exe_path, " (readlink: Permission denied)");
 		add_entry(p, "exe", "unknown", "", exe_path);
 	}
+	else
+	{
+		exe[len] = 0;
+		add_entry(p, "exe", "REG", get_inode(exe), exe);
+	}
+
+	// === fd ===
+	char* fd = new char[FILE_LEN];
+	DIR *dir = opendir(fd_path);
+	if(!dir)
+	{
+		strcat(fd_path, " (opendir: Permission denied)");
+		add_entry(p, "NOFD", "", "", fd_path);
+	}
+	else
+	{
+		dirent* dent;
+		while((dent = readdir(dir)))
+		{
+			
+		}
+		closedir(dir);
+	}
+	
+	delete cwd;
+	delete root;
+	delete exe;
+	delete fd;
+	delete cwd_path;
+	delete root_path;
+	delete exe_path;
+	delete fd_path;
 }
 
 int main(int argc, char **argv)
@@ -98,9 +162,6 @@ int main(int argc, char **argv)
 		print_usage(argv[0]);
 		return 0;
 	}
-
-	// check if user is root
-	IS_ROOT = (geteuid() == 0);
 
 	dirent* dent;
 	DIR *dir = opendir("/proc");

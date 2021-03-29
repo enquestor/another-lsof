@@ -8,5 +8,6 @@
 #define CMD_LEN 100
 #define REGEX_ARRAY_LEN 300
 #define ENTRY_LEN 200
+#define READLINK_LEN 100
 
 #endif

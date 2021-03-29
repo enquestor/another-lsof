@@ -21,7 +21,7 @@ void print_usage(char* prog_name)
 
 void print_line(const char* command, const char* pid, const char* user, const char* fd, const char* type, const char* node, const char* name)
 {
-	printf("%-26s\t%-9s%-10s%-9s%-10s%-10s%s\n", command, pid, user, fd, type, node, name);
+	printf("%-20s\t%-9s%-10s%-9s%-10s%-10s%s\n", command, pid, user, fd, type, node, name);
 }
 
 void print_head()
@@ -92,6 +92,11 @@ char** match_regex(char* str, char* reg, int* count) {
 	return matches;
 }
 
+bool exists(char* path)
+{
+	return access(path, R_OK);
+}
+
 char* read_file(char* path)
 {
 	int fd;
@@ -100,6 +105,15 @@ char* read_file(char* path)
 	read(fd, buf, FILE_LEN);
 	close(fd);
 	return buf;
+}
+
+char* get_inode(char* path)
+{
+	struct stat sta;
+	stat(path, &sta);
+	char* inode = new char[10];
+	sprintf(inode, "%lu", sta.st_ino);
+	return inode;
 }
 
 char* get_username(int uid)
