@@ -1,6 +1,6 @@
-#include "utils.h"
-#include "consts.h"
-#include "proc.h"
+#include "../header/utils.h"
+#include "../header/consts.h"
+#include "../header/proc.h"
 #include <cstdio>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -9,6 +9,15 @@
 #include <regex.h>
 #include <unistd.h>
 #include <assert.h>
+#include <pwd.h>
+
+void print_usage(char* prog_name)
+{
+	printf("Usage:\n");
+	printf("  %s [ -c REGEX COMMAND filter ]\n", prog_name);
+	printf("  %s [ -t TYPE filter ]\n", prog_name);
+	printf("  %s [ -f REGEX NAME filter ]\n", prog_name);
+}
 
 void print_line(const char* command, const char* pid, const char* user, const char* fd, const char* type, const char* node, const char* name)
 {
@@ -60,4 +69,18 @@ char* read_file(char* path)
 	read(fd, buf, FILE_LEN);
 	close(fd);
 	return buf;
+}
+
+char* get_username(int uid)
+{
+	passwd *pw = getpwuid(uid);
+	return pw->pw_name;
+}
+
+char* proc_path(char* pid)
+{
+	char* path = new char[PATH_LEN];
+	strcpy(path, "/proc/");
+	strcat(path, pid);
+	return path;
 }

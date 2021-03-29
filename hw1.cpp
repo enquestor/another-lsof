@@ -1,17 +1,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <dirent.h>
 #include <unistd.h>
-#include <pwd.h>
-#include <fcntl.h>
-#include <regex.h>
-#include <assert.h>
-#include "consts.h"
-#include "utils.h"
-#include "proc.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include "header/consts.h"
+#include "header/utils.h"
+#include "header/proc.h"
 
 // 0: status, 1: -c, 2: -t, 3: -f
 char** parse_args(int argc, char **argv)
@@ -38,30 +34,6 @@ char** parse_args(int argc, char **argv)
 	}
 	return args;
 }
-
-void print_usage(char* prog_name)
-{
-	printf("Usage:\n");
-	printf("  %s [ -c REGEX COMMAND filter ]\n", prog_name);
-	printf("  %s [ -t TYPE filter ]\n", prog_name);
-	printf("  %s [ -f REGEX NAME filter ]\n", prog_name);
-}
-
-char* get_username(int uid)
-{
-	passwd *pw = getpwuid(uid);
-	return pw->pw_name;
-}
-
-char* proc_path(char* pid)
-{
-	char* path = new char[PATH_LEN];
-	strcpy(path, "/proc/");
-	strcat(path, pid);
-	return path;
-}
-
-// ======================================================
 
 char* get_command(char* pid)
 {
