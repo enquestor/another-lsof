@@ -124,17 +124,13 @@ void set_fd(proc* p)
 
 	// === mem ===
 	char* maps = read_file(mem_path);
+	// printf("%s\n", maps);
 	if(!maps)
 	{
 		char* reg  = new char[REG_LEN];
 		int count;
 		strcpy(reg, "\\d*\\s*/.*");
-		// char** matches = match_regex(maps, reg, &count);
-		// printf("%d\n", count);
-		// for(int i = 0; i < count; i++)
-		// {
-		// 	printf("%s\n", matches[i]);
-		// }
+		char** matches = match_regex(maps, reg, &count);
 	}
 
 	// === fd ===
@@ -225,7 +221,7 @@ int main(int argc, char **argv)
 
 		// print
 		print(p);
-		// break;
+		break;
 	}
     closedir(dir);
 }
