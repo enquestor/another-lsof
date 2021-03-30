@@ -57,63 +57,64 @@ char* to_string(long unsigned int n, int len)
 	return str;
 }
 
-char* match_regex(char* str, char* reg)
-{
-	regex_t rt;
-	regmatch_t rm;
-	assert(regcomp(&rt, reg, REG_EXTENDED) == 0);
-	assert(regexec(&rt, str, 1, &rm, 0) == 0);
-	char* match = new char[REG_LEN];
-	strncpy(match, str + rm.rm_so, rm.rm_eo - rm.rm_so);
-	match[rm.rm_eo - rm.rm_so] = 0;
-	return match;
-}
-
-// char** match_regex(char* str, char* reg, int* count) {
+// char* match_regex(char* str, char* reg)
+// {
 // 	regex_t rt;
 // 	regmatch_t rm;
 // 	assert(regcomp(&rt, reg, REG_EXTENDED) == 0);
-//     // we just need the whole string match in this example    
-
-//     // we store the eflags in a variable, so that we can make
-//     // ^ match the first time, but not for subsequent regexecs
-//     int eflags = 0;
-// 	int i = 0;
-//     size_t offset = 0;
-//     size_t length = strlen(str);
-// 	char* now_str = str;
-// 	char** matches = new char*[REGEX_ARRAY_LEN];
-
-//     while (regexec(&rt, now_str, 1, &rm, eflags) == 0)
-// 	{
-//         // do not let ^ match again.
-//         eflags = REG_NOTBOL;
-// 		matches[i] = new char[REG_LEN];
-// 		strncpy(matches[i], now_str + rm.rm_so, rm.rm_eo - rm.rm_so);
-
-//         // increase the starting offset
-//         now_str += rm.rm_eo;
-
-//         // a match can be a zero-length match, we must not fail
-//         // to advance the pointer, or we'd have an infinite loop!
-//         if (rm.rm_so == rm.rm_eo)
-//             now_str += 1;
-		
-// 		i++;
-
-//         // break the loop if we've consumed all characters. Note
-//         // that we run once for terminating null, to let
-//         // a zero-length match occur at the end of the string.
-//         if (now_str >= str + length)
-//             break;
-//     }
-// 	*count = i;
-// 	return matches;
+// 	assert(regexec(&rt, str, 1, &rm, 0) == 0);
+// 	char* match = new char[REG_LEN];
+// 	strncpy(match, str + rm.rm_so, rm.rm_eo - rm.rm_so);
+// 	match[rm.rm_eo - rm.rm_so] = 0;
+// 	return match;
 // }
+
+char** match_regex(char* str, char* reg, int* count) {
+	regex_t rt;
+	regmatch_t rm;
+	assert(regcomp(&rt, reg, REG_EXTENDED) == 0);
+    // we just need the whole string match in this example    
+
+    // we store the eflags in a variable, so that we can make
+    // ^ match the first time, but not for subsequent regexecs
+    int eflags = 0;
+	int i = 0;
+    size_t offset = 0;
+    size_t length = strlen(str);
+	char* now_str = str;
+	char** matches = new char*[REGEX_ARRAY_LEN];
+
+    while (regexec(&rt, now_str, 1, &rm, eflags) == 0)
+	{
+        // do not let ^ match again.
+        eflags = REG_NOTBOL;
+		matches[i] = new char[REG_LEN];
+		strncpy(matches[i], now_str + rm.rm_so, rm.rm_eo - rm.rm_so);
+		matches[i][rm.rm_eo - rm.rm_so] = 0;
+
+        // increase the starting offset
+        now_str += rm.rm_eo;
+
+        // a match can be a zero-length match, we must not fail
+        // to advance the pointer, or we'd have an infinite loop!
+        if (rm.rm_so == rm.rm_eo)
+            now_str += 1;
+		
+		i++;
+
+        // break the loop if we've consumed all characters. Note
+        // that we run once for terminating null, to let
+        // a zero-length match occur at the end of the string.
+        if (now_str >= str + length)
+            break;
+    }
+	*count = i;
+	return matches;
+}
 
 bool exists(char* path)
 {
-	return access(path, R_OK);
+	return access(path, F_OK);
 }
 
 char* read_file(char* path)
@@ -121,7 +122,9 @@ char* read_file(char* path)
 	int fd;
 	char* buf = new char[FILE_LEN];
 	fd = open(path, O_RDONLY);
-	read(fd, buf, FILE_LEN);
+	if(fd == -1) return NULL;
+	int len = read(fd, buf, FILE_LEN);
+	if(len == -1) return NULL;
 	close(fd);
 	return buf;
 }
@@ -136,12 +139,14 @@ char* get_inode(char* path)
 
 char* get_rwu(char* path)
 {
-	bool r = (access(path, R_OK) == 0);
-	bool w = (access(path, W_OK) == 0);
 	char* ret = new char[2];
+	struct stat sta;
+	lstat(path, &sta);
+	bool r = (sta.st_mode & S_IRUSR);
+	bool w = (sta.st_mode & S_IWUSR);
 	if(r && w) ret[0] = 'u';
-	if(r) ret[0] = 'r';
-	if(w) ret[0] = 'w';
+	else if(r) ret[0] = 'r';
+	else if(w) ret[0] = 'w';
 	ret[1] = 0;
 	return ret;
 }

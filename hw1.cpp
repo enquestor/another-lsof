@@ -42,10 +42,11 @@ void set_command(proc* p)
 	char* path = proc_path(p->pid);
 	char* cmd  = new char[CMD_LEN];
 	char* reg  = new char[REG_LEN];
+	int count;
 	strcat(path, "/stat");
 	strcpy(reg, "\\(.*\\)");
 	sta = read_file(path);
-	cmd = match_regex(sta, reg);
+	cmd = match_regex(sta, reg, &count)[0];
 	++cmd; cmd[strlen(cmd) - 1] = 0;
 	p->command = cmd;
 }
@@ -71,6 +72,9 @@ void set_fd(proc* p)
 	char* exe_path = new char[ENTRY_LEN];
 	strcpy(exe_path, path);
 	strcat(exe_path, "/exe");
+	char* mem_path = new char[ENTRY_LEN];
+	strcpy(mem_path, path);
+	strcat(mem_path, "/maps");
 	char* fd_path = new char[ENTRY_LEN];
 	strcpy(fd_path, path);
 	strcat(fd_path, "/fd");
@@ -118,6 +122,21 @@ void set_fd(proc* p)
 		add_entry(p, "exe", "REG", get_inode(exe), exe);
 	}
 
+	// === mem ===
+	char* maps = read_file(mem_path);
+	if(!maps)
+	{
+		char* reg  = new char[REG_LEN];
+		int count;
+		strcpy(reg, "\\d*\\s*/.*");
+		// char** matches = match_regex(maps, reg, &count);
+		// printf("%d\n", count);
+		// for(int i = 0; i < count; i++)
+		// {
+		// 	printf("%s\n", matches[i]);
+		// }
+	}
+
 	// === fd ===
 	DIR *dir = opendir(fd_path);
 	if(!dir)
@@ -142,7 +161,6 @@ void set_fd(proc* p)
 
 			stat(full_path, &sta);
 			len = readlink(full_path, real_path, PATH_LEN); real_path[len] = 0;
-			// printf("%s\n", real_path);
 
 			strcpy(fd, "");
 			strcat(fd, dent->d_name);

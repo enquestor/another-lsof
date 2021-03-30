@@ -3,11 +3,12 @@
 
 #define REG_LEN 100
 #define ARG_LEN 100
-#define FILE_LEN 1000
+#define FILE_LEN 20000
 #define PATH_LEN 100
 #define CMD_LEN 100
 #define REGEX_ARRAY_LEN 300
 #define ENTRY_LEN 200
+#define ENTRY_ARRAY_LEN 10000
 #define READLINK_LEN 100
 #define STR_LEN 100
 
