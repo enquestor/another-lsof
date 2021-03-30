@@ -10,6 +10,9 @@
 #include "header/utils.h"
 #include "header/proc.h"
 
+const int TYPE_COUNT = 6;
+const char* TYPES[] = {"REG", "CHR", "DIR", "FIFO", "SOCK", "unknown"};
+
 // 0: status, 1: -c, 2: -t, 3: -f
 char** parse_args(int argc, char **argv)
 {
@@ -174,7 +177,7 @@ void set_fd(proc* p)
 			strcat(fd, get_rwu(full_path));
 			
 			if(S_ISDIR(sta.st_mode))
-				add_entry(p, "CHINCHIN", "DIR", get_inode(full_path), real_path);
+				add_entry(p, fd, "DIR", get_inode(full_path), real_path);
 			else if(S_ISREG(sta.st_mode))
 				add_entry(p, fd, "REG", get_inode(full_path), real_path);
 			else if(S_ISCHR(sta.st_mode))
@@ -200,6 +203,20 @@ int main(int argc, char **argv)
 	{
 		print_usage(argv[0]);
 		return 0;
+	}
+
+	// -t TYPE check
+	if(strlen(args[2]) != 0)
+	{
+		bool good = false;
+		for(int i = 0; i < TYPE_COUNT; i++)
+			if(strcmp(TYPES[i], args[2]) == 0)
+				good = true;
+		if(!good)
+		{
+			printf("Invalid TYPE option.\n");
+			return 0;
+		}
 	}
 
 	dirent* dent;
@@ -231,12 +248,12 @@ int main(int argc, char **argv)
 		set_fd(&p);
 
 		// print
-		print(&p);
+		print(&p, args);
 	}
     closedir(dir);
 }
 
-// command: cmdline
+// command: proc/pid/stat
 // pid: folder name
 // user: owner of folder (uid -> loginuid)
 // FD: The file descriptor. The value shown in FD field can be one of the following cases.

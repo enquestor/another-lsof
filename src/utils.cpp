@@ -29,10 +29,15 @@ void print_head()
 	print_line("COMMAND", "PID", "USER", "FD", "TYPE", "NODE", "NAME");
 }
 
-void print(proc* p)
+void print(proc* p, char** args)
 {
 	for(int i = 0; i < p->e; i++)
+	{
+		if(strlen(args[1]) != 0 && match_regex(p->command, args[1]) == NULL) continue;
+		if(strlen(args[2]) != 0 && strcmp(p->type[i], args[2]) != 0) continue;
+		if(strlen(args[3]) != 0 && match_regex(p->name[i], args[3]) == NULL) continue;
 		print_line(p->command, p->pid, p->user, p->fd[i], p->type[i], p->node[i], p->name[i]);
+	}
 }
 
 // checks if s is a number

@@ -5,7 +5,7 @@
 void print_usage(char*);
 void print_line(const char*, const char*, const char*, const char*, const char*, const char*, const char*);
 void print_head();
-void print(proc*);
+void print(proc*, char** args);
 bool is_number(char*);
 int to_number(char*);
 char* to_string(long unsigned int, int);
