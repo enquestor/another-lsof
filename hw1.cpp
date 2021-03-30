@@ -42,11 +42,11 @@ void set_command(proc* p)
 	char* path = proc_path(p->pid);
 	char* cmd  = new char[CMD_LEN];
 	char* reg  = new char[REG_LEN];
-	int count;
+	// int count;
 	strcat(path, "/stat");
 	strcpy(reg, "\\(.*\\)");
 	sta = read_file(path);
-	cmd = match_regex(sta, reg, &count)[0];
+	cmd = match_regex(sta, reg);
 	++cmd; cmd[strlen(cmd) - 1] = 0;
 	p->command = cmd;
 }
@@ -123,14 +123,25 @@ void set_fd(proc* p)
 	}
 
 	// === mem ===
-	char* maps = read_file(mem_path);
-	// printf("%s\n", maps);
-	if(!maps)
+	FILE* fp = fopen(mem_path, "r");
+	if(fp != NULL)
 	{
-		char* reg  = new char[REG_LEN];
-		int count;
-		strcpy(reg, "\\d*\\s*/.*");
-		char** matches = match_regex(maps, reg, &count);
+		char* line = NULL;
+		size_t size = 0;
+		ssize_t read;
+		char* reg = new char[REG_LEN];
+		strcpy(reg, "/.*");
+		char* prev = new char[REG_LEN];
+		strcpy(prev, "");
+		while((read = getline(&line, &size, fp)) != -1)
+		{
+			char* match = match_regex(line, reg);
+			if(match == NULL) continue;
+			match[strlen(match) - 1] = 0;
+			if(strcmp(prev, match) == 0) continue;
+			add_entry(p, "mem", "REG", get_inode(match), match);
+			strcpy(prev, match);
+		}
 	}
 
 	// === fd ===
@@ -192,7 +203,7 @@ int main(int argc, char **argv)
 	}
 
 	dirent* dent;
-	DIR *dir = opendir("/proc");
+	DIR* dir = opendir("/proc");
 	print_head();
 	while((dent = readdir(dir)))
 	{
@@ -210,18 +221,17 @@ int main(int argc, char **argv)
 		set_user(&p);
 
 		// initialize arrays
-		p.fd   = new char*[ENTRY_LEN];
-		p.type = new char*[ENTRY_LEN];
-		p.node = new char*[ENTRY_LEN];
-		p.name = new char*[ENTRY_LEN];
+		p.fd   = new char*[ENTRY_ARRAY_LEN];
+		p.type = new char*[ENTRY_ARRAY_LEN];
+		p.node = new char*[ENTRY_ARRAY_LEN];
+		p.name = new char*[ENTRY_ARRAY_LEN];
 		p.e = 0;
 
 		// === FD ===
 		set_fd(&p);
 
 		// print
-		print(p);
-		break;
+		print(&p);
 	}
     closedir(dir);
 }

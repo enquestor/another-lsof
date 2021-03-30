@@ -29,10 +29,10 @@ void print_head()
 	print_line("COMMAND", "PID", "USER", "FD", "TYPE", "NODE", "NAME");
 }
 
-void print(proc p)
+void print(proc* p)
 {
-	for(int i = 0; i < p.e; i++)
-		print_line(p.command, p.pid, p.user, p.fd[i], p.type[i], p.node[i], p.name[i]);
+	for(int i = 0; i < p->e; i++)
+		print_line(p->command, p->pid, p->user, p->fd[i], p->type[i], p->node[i], p->name[i]);
 }
 
 // checks if s is a number
@@ -57,65 +57,60 @@ char* to_string(long unsigned int n, int len)
 	return str;
 }
 
-// char* match_regex(char* str, char* reg)
-// {
-// 	regex_t rt;
-// 	regmatch_t rm;
-// 	assert(regcomp(&rt, reg, REG_EXTENDED) == 0);
-// 	assert(regexec(&rt, str, 1, &rm, 0) == 0);
-// 	char* match = new char[REG_LEN];
-// 	strncpy(match, str + rm.rm_so, rm.rm_eo - rm.rm_so);
-// 	match[rm.rm_eo - rm.rm_so] = 0;
-// 	return match;
-// }
-
-char** match_regex(char* str, char* reg, int* count) {
+char* match_regex(char* str, char* reg)
+{
 	regex_t rt;
 	regmatch_t rm;
 	assert(regcomp(&rt, reg, REG_EXTENDED) == 0);
-    // we just need the whole string match in this example    
+	if(regexec(&rt, str, 1, &rm, 0) != 0) return NULL;
+	char* match = new char[REG_LEN];
+	strncpy(match, str + rm.rm_so, rm.rm_eo - rm.rm_so);
+	match[rm.rm_eo - rm.rm_so] = 0;
+	return match;
+}
 
-    // we store the eflags in a variable, so that we can make
-    // ^ match the first time, but not for subsequent regexecs
-    int eflags = 0;
-	int i = 0;
-    size_t offset = 0;
-    size_t length = strlen(str);
-	char* now_str = str;
-	char** matches = new char*[REGEX_ARRAY_LEN];
+// char** match_regex(char* str, char* reg, int* count) {
+// 	regex_t rt;
+// 	regmatch_t rm;
+// 	assert(regcomp(&rt, reg, REG_EXTENDED) == 0);
+//     // we just need the whole string match in this example    
 
-    while (regexec(&rt, now_str, 1, &rm, eflags) == 0)
-	{
-        // do not let ^ match again.
-        eflags = REG_NOTBOL;
-		matches[i] = new char[REG_LEN];
-		strncpy(matches[i], now_str + rm.rm_so, rm.rm_eo - rm.rm_so);
-		matches[i][rm.rm_eo - rm.rm_so] = 0;
+//     // we store the eflags in a variable, so that we can make
+//     // ^ match the first time, but not for subsequent regexecs
+//     int eflags = 0;
+// 	int i = 0;
+//     size_t offset = 0;
+//     size_t length = strlen(str);
+// 	char* now_str = str;
+// 	char** matches = new char*[REGEX_ARRAY_LEN];
 
-        // increase the starting offset
-        now_str += rm.rm_eo;
+//     while (regexec(&rt, now_str, 1, &rm, eflags) == 0)
+// 	{
+//         // do not let ^ match again.
+//         eflags = REG_NOTBOL;
+// 		matches[i] = new char[REG_LEN];
+// 		strncpy(matches[i], now_str + rm.rm_so, rm.rm_eo - rm.rm_so);
+// 		matches[i][rm.rm_eo - rm.rm_so] = 0;
 
-        // a match can be a zero-length match, we must not fail
-        // to advance the pointer, or we'd have an infinite loop!
-        if (rm.rm_so == rm.rm_eo)
-            now_str += 1;
+//         // increase the starting offset
+//         now_str += rm.rm_eo;
+
+//         // a match can be a zero-length match, we must not fail
+//         // to advance the pointer, or we'd have an infinite loop!
+//         if (rm.rm_so == rm.rm_eo)
+//             now_str += 1;
 		
-		i++;
+// 		i++;
 
-        // break the loop if we've consumed all characters. Note
-        // that we run once for terminating null, to let
-        // a zero-length match occur at the end of the string.
-        if (now_str >= str + length)
-            break;
-    }
-	*count = i;
-	return matches;
-}
-
-bool exists(char* path)
-{
-	return access(path, F_OK);
-}
+//         // break the loop if we've consumed all characters. Note
+//         // that we run once for terminating null, to let
+//         // a zero-length match occur at the end of the string.
+//         if (now_str >= str + length)
+//             break;
+//     }
+// 	*count = i;
+// 	return matches;
+// }
 
 char* read_file(char* path)
 {
