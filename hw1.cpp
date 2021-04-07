@@ -45,12 +45,11 @@ void set_command(proc* p)
 	char* path = proc_path(p->pid);
 	char* cmd  = new char[CMD_LEN];
 	char* reg  = new char[REG_LEN];
-	// int count;
-	strcat(path, "/stat");
-	strcpy(reg, "\\(.*\\)");
+	strcat(path, "/comm");
+	strcpy(reg, ".*\\s");
 	sta = read_file(path);
 	cmd = match_regex(sta, reg);
-	++cmd; cmd[strlen(cmd) - 1] = 0;
+	cmd[strlen(cmd) - 1] = 0;
 	p->command = cmd;
 }
 
