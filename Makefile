@@ -8,10 +8,13 @@ OBJ = $(addprefix $(OBJDIR)/, consts.o utils.o proc.o)
 
 all: clean hw1
 
+$(OBJDIR):
+	mkdir $(OBJDIR)
+
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CPP) -c $< -o $@
 
-hw1: hw1.cpp $(OBJ)
+hw1: hw1.cpp $(OBJDIR) $(OBJ)
 	$(CPP) $(CPPFLAGS) $(OBJ) hw1.cpp -o hw1
 
 run: clean hw1
@@ -19,4 +22,4 @@ run: clean hw1
 
 clean:
 	rm -f hw1
-	rm -f $(OBJDIR)/*.o
+	rm -rf $(OBJDIR)
